@@ -25,7 +25,7 @@ typedef vector<uint32_t> DescType; // Descriptor type
  * NOTE: if a keypoint goes outside the image boundary (8 pixels), descriptors will not be computed and will be left as
  * empty
  */
-void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<DescType> &descriptors);
+void ComputeORB(const cv::Mat &img, const vector<cv::KeyPoint> &keypoints, vector<DescType> &descriptors);
 
 /**
  * brute-force match two sets of descriptors
@@ -340,7 +340,7 @@ int ORB_pattern[256 * 4] = {
 };
 
 // compute the descriptor
-void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<DescType> &descriptors) {
+void ComputeORB(const cv::Mat &img, const vector<cv::KeyPoint> &keypoints, vector<DescType> &descriptors) {
   const int half_patch_size = 8;
   const int half_boundary = 16;
   int bad_points = 0;
@@ -356,6 +356,7 @@ void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<Desc
     float m01 = 0, m10 = 0;
     for (int dx = -half_patch_size; dx < half_patch_size; ++dx) {
       for (int dy = -half_patch_size; dy < half_patch_size; ++dy) {
+        //以行列索引找到对应像素值
         uchar pixel = img.at<uchar>(kp.pt.y + dy, kp.pt.x + dx);
         m10 += dx * pixel;
         m01 += dy * pixel;
@@ -368,11 +369,13 @@ void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<Desc
     float cos_theta = m10 / m_sqrt;
 
     // compute the angle of this point
+    // 初始化8个0元素
     DescType desc(8, 0);
     for (int i = 0; i < 8; i++) {
       uint32_t d = 0;
       for (int k = 0; k < 32; k++) {
         int idx_pq = i * 32 + k;
+        // 获得一对描述子标志索引p，q
         cv::Point2f p(ORB_pattern[idx_pq * 4], ORB_pattern[idx_pq * 4 + 1]);
         cv::Point2f q(ORB_pattern[idx_pq * 4 + 2], ORB_pattern[idx_pq * 4 + 3]);
 
@@ -383,9 +386,11 @@ void ComputeORB(const cv::Mat &img, vector<cv::KeyPoint> &keypoints, vector<Desc
                          + kp.pt;
         if (img.at<uchar>(pp.y, pp.x) < img.at<uchar>(qq.y, qq.x)) {
           d |= 1 << k;
+          //cout << d<< endl;
         }
       }
       desc[i] = d;
+      //cout << desc[i] << endl;
     }
     descriptors.push_back(desc);
   }
